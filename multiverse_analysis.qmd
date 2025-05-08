@@ -1,7 +1,6 @@
 ---
 title: "Multiverse Analysis v2.1"
 format: html
-output-dir: docs
 ---
 
 Dataframes:
@@ -27,6 +26,7 @@ library(writexl)
 
 #load in the dataframe, mv_complete
 mv_complete <- read_excel("mv_complete.xlsx")
+
 #load in multiverse_merged.csv
 mv <- read.csv("multiverse_merged.csv")
 
@@ -35,6 +35,7 @@ mv <- mv %>% filter(Randomization.StudyTreatmentCat == "Placebo")
 
 #delete any column that has all NA values
 mv <- mv[, colSums(is.na(mv)) < nrow(mv)]
+
 ```
 
 Merge in the GOSE_GCS appendix, which contains information about TBI severity
@@ -122,6 +123,15 @@ mv_complete <- mv %>%
 
 #Generate a curvilinear age variable
 mv_complete$Main.AgeYrs_Squared <- mv_complete$Main.AgeYrs^2
+
+nrow(mv_complete)
+
+#print all the values in the ID column for mv_complete
+mv_complete$Main.GUID
+
+#save all these Main.GUI values to an csv file
+write.csv(mv_complete$Main.GUID, "mv_complete_IDs.csv", row.names = FALSE)
+
 ```
 
 Standardize the predictor variables. Convert to z-scores
@@ -169,7 +179,9 @@ Now, extract the largest and smallest r squared value from all the possible mode
 ```{r}
 #Pull the largest r2 value
 largest_r2_value <- max(PSI_results_df$fit_adj.r.squared)
+print(largest_r2_value)
 smallest_r2_value <- min(PSI_results_df$fit_adj.r.squared)
+print(smallest_r2_value)
 r2_ratio_PSI <- largest_r2_value / smallest_r2_value
 r2_ratio_PSI  
 
@@ -197,6 +209,31 @@ print(PSI_results_df$formula[PSI_results_df$estimate == largest_b_value_PSI])
 #print the model that corresponds to the smallest value
 print(PSI_results_df$formula[PSI_results_df$estimate == smallest_b_value_PSI])
 ```
+
+Same thing but with p-values
+```{r}
+#extract smallest value from latent_model_dataframe$p.value
+smallest_p_value_PSI <- min(PSI_results_df$p.value)
+largest_p_value_PSI <- max(PSI_results_df$p.value)
+
+#ratio
+p_ratio_PSI <- largest_p_value_PSI / smallest_p_value_PSI
+p_ratio_PSI
+
+smallest_p_value_PSI
+largest_p_value_PSI
+
+#now, make a new column called p.value_sig that is TRUE if the p-value is less than 0.05, and FALSE otherwise
+PSI_results_df$p.value_sig <- PSI_results_df$p.value < 0.05
+#return a table of the p-value sig column
+table(PSI_results_df$p.value_sig)
+#generate a count of the ratio of the TRUE to FALSE values
+table(PSI_results_df$p.value_sig) |> 
+  prop.table() |> 
+  round(2) |> 
+  print()
+```
+
 
 Generate a function that computes the Cohen's F2 value and updates the dataframe with a column that has these values
 ```{r}
@@ -325,6 +362,30 @@ r2_ratio_QOL <- largest_r2_value / smallest_r2_value
 r2_ratio_QOL
 ```
 
+same thing but with p values
+```{r}
+#extract smallest value from latent_model_dataframe$p.value
+smallest_p_value_QOL <- min(qol_specs_results_df$p.value)
+largest_p_value_QOL <- max(qol_specs_results_df$p.value)
+
+#ratio
+p_ratio_QOL <- largest_p_value_QOL / smallest_p_value_QOL
+p_ratio_QOL
+
+smallest_p_value_QOL
+largest_p_value_QOL
+
+#now, make a new column called p.value_sig that is TRUE if the p-value is less than 0.05, and FALSE otherwise
+qol_specs_results_df$p.value_sig <- qol_specs_results_df$p.value < 0.05
+#return a table of the p-value sig column
+table(qol_specs_results_df$p.value_sig)
+#generate a count of the ratio of the TRUE to FALSE values
+table(qol_specs_results_df$p.value_sig) |> 
+  prop.table() |> 
+  round(2) |> 
+  print()
+```
+
 Generate the F2 values for the QOL measures
 ```{r}
 #Apply the add_f2 function to the qol_specs_results_df
@@ -388,4 +449,28 @@ write_xlsx(mood_outcome_results_df, "mood_outcome_results_df.xlsx")
 ```{r}
 #apply the add_f2 function to the mood_outcome_results_df
 mood_outcome_results_df <- add_f2(mood_outcome_results_df, r2_column = "fit_r.squared")
+```
+
+p-values 
+```{r}
+#extract smallest value from latent_model_dataframe$p.value
+smallest_p_value_mood <- min(mood_outcome_results_df$p.value)
+largest_p_value_mood <- max(mood_outcome_results_df$p.value)
+
+#ratio
+p_ratio_mood <- largest_p_value_mood / smallest_p_value_mood
+p_ratio_mood
+
+smallest_p_value_mood
+largest_p_value_mood
+
+#now, make a new column called p.value_sig that is TRUE if the p-value is less than 0.05, and FALSE otherwise
+mood_outcome_results_df$p.value_sig <- mood_outcome_results_df$p.value < 0.05
+#return a table of the p-value sig column
+table(mood_outcome_results_df$p.value_sig)
+#generate a count of the ratio of the TRUE to FALSE values
+table(mood_outcome_results_df$p.value_sig) |> 
+  prop.table() |> 
+  round(2) |> 
+  print()
 ```
