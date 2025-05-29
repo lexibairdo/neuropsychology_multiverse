@@ -1,6 +1,6 @@
 ---
 title: "Multiverse Analysis v2.1"
-format: html
+format: docx
 ---
 
 Dataframes:
@@ -38,6 +38,8 @@ mv <- mv[, colSums(is.na(mv)) < nrow(mv)]
 
 ```
 
+
+
 Merge in the GOSE_GCS appendix, which contains information about TBI severity
 ```{r}
 gose <- read.csv("GOSE_GCS_extended_appendix.csv")
@@ -52,6 +54,7 @@ gose$Main.GUID <- gose$X1
 #filter gose for only rows where X.8 is "30"
 gose <- gose %>% filter(X.8 == "30")
 #Reverse Code the PTA variable. Subtract 100 from the PTA scores
+table(gose$PTA)
 gose$PTA_Reverse <- 100 - gose$PTA       
 #Merge the column gose$PTA into mv based on the column mv$Main.GUID
 mv <- mv %>%
@@ -118,8 +121,13 @@ mv$Demographics.AnnualIncomePreInjOrdinal <- as.integer(mv$Demographics.AnnualIn
 Generate a new dataframe that only includes complete cases for the variables of interest for this analysis
 ```{r}
 mv_complete <- mv %>%
-  select(Main.GUID, Demographics.GenderTyp, PSIScrCOBRIT, PSIScrCOBRIT_Z, .BSI18DeprScoreT, .BSI18AnxScoreT, .BSI18GSIScoreT, PTA_Reverse, PSISymbSrchScldScrCOBRIT, PSISymbSrchScldScrCOBRIT_Z, PSIDigSymbScldScrCOBRIT, PSIDigSymbScldScrCOBRIT_Z, WorsT.GCS.and.Pupils.GCSTotalScore, Main.AgeYrs, Demographics.RaceCatCOBRIT, Demographics.AnnualIncomePreInjOrdinal, Demographics.EduLvlUSATypCOBRITOrdinal, .GOATTotalScore, SWLSTotalScore, DRS.DRSTotalScore) %>%
+  select(Main.GUID, Demographics.GenderTyp, PSIScrCOBRIT, PSIScrCOBRIT_Z, .BSI18DeprScoreT, .BSI18AnxScoreT, .BSI18GSIScoreT, PTA_Reverse, PSISymbSrchScldScrCOBRIT, PSISymbSrchScldScrCOBRIT_Z, PSIDigSymbScldScrCOBRIT, PSIDigSymbScldScrCOBRIT_Z, WorsT.GCS.and.Pupils.GCSTotalScore, Main.AgeYrs, Demographics.RaceCatCOBRIT, Demographics.AnnualIncomePreInjOrdinal, Demographics.EduLvlUSATypCOBRITOrdinal, .GOATTotalScore, SWLSTotalScore, DRS.DRSTotalScore, Demographics.AnnualIncomePreInjCat, Demographics.EduLvlUSATypCOBRIT) %>%
   drop_na()
+
+hist(mv_complete$SWLSTotalScore, main = "Satisfaction with Life Scale Total Score", xlab = "Total Score", ylab = "Frequency")
+hist(mv_complete$DRS.DRSTotalScore, main = "Disability Rating Scale Total Score", xlab = "Total Score", ylab = "Frequency")
+table(mv_complete$DRS.TotalScore)
+#Show summary stats for the mv_complete dataframe
 
 #Generate a curvilinear age variable
 mv_complete$Main.AgeYrs_Squared <- mv_complete$Main.AgeYrs^2
@@ -157,11 +165,11 @@ PSI_results <- specr(PSI_specs)
 #save the results as a dataframe
 PSI_results_df <- as.data.frame(PSI_results)
 #Generate a plot that only breaks down specification by predictors and outcome variables. Control variables are included in the curve, just remain unlabeled
-plot(PSI_results, choices = c("y", "x"))
+PSI_outcome_curve <- plot(PSI_results, choices = c("y", "x"))
 #Save the plot to working directory
 ggsave("PSI_results_curve_y_x_only.jpg")
 #generate a boxplot of the same data. 
-plot(PSI_results, choices = c("y", "x"), 
+PSI_outcome_box <- plot(PSI_results, choices = c("y", "x"), 
      type = "boxplot")
 #Save the boxplot to working directory
 ggsave("PSI_results_boxplot_y_x_only.jpg")
@@ -237,7 +245,7 @@ table(PSI_results_df$p.value_sig) |>
 
 Generate a function that computes the Cohen's F2 value and updates the dataframe with a column that has these values
 ```{r}
-add_f2 <- function(data, r2_column = "fit_r.squared") {
+add_f2 <- function(data, r2_column = "fit_r.squared", plot_name = "f2_plot") {
   if (!r2_column %in% names(data)) {
     stop("Specified R2 column not found in data.")
   }
@@ -254,6 +262,9 @@ add_f2 <- function(data, r2_column = "fit_r.squared") {
       )
     )
   
+  # Set the order of the effect_size factor
+  result$effect_size <- factor(result$effect_size, levels = c("small", "medium", "large"))
+  
   # Print summary table
   result |>
     count(effect_size) |>
@@ -268,10 +279,11 @@ add_f2 <- function(data, r2_column = "fit_r.squared") {
   p <- ggplot(result, aes(x = effect_size, fill = effect_size)) +
     geom_bar() +
     scale_fill_manual(
+      name = "Effect Size Category",  # Change legend title here
       values = c(
-        "large" = "darksalmon",
+        "small" = "darkgoldenrod1",
         "medium" = "cyan4",
-        "small" = "darkgoldenrod1"
+        "large" = "darksalmon"
       )
     ) +
     labs(
@@ -282,7 +294,8 @@ add_f2 <- function(data, r2_column = "fit_r.squared") {
     ) +
     theme_minimal()
   
-  print(p)
+  # Assign the plot to a variable in the workspace
+  assign(plot_name, p, envir = .GlobalEnv)
   
   return(result)
 }
@@ -290,7 +303,9 @@ add_f2 <- function(data, r2_column = "fit_r.squared") {
 
 Apply f2 function to the PSI results dataframe. This will also output a summary table and a barplot of the effect sizes. 
 ```{r}
-PSI_results_df <- add_f2(PSI_results_df, r2_column = "fit_r.squared")
+PSI_results_df <- add_f2(PSI_results_df, r2_column = "fit_r.squared", plot_name = "PSI_f2_plot")
+
+ggsave("PSI_results_df_f2_barplot.jpg")
 
 #Save results as an excel file
 write_xlsx(PSI_results_df, "PSI_results_df.xlsx")
@@ -305,13 +320,14 @@ hist(mv_complete$DRS.DRSTotalScore, main = "Disability Rating Scale Total Score"
 
 #Reverse and scale the DRS scores so that higher scores reflect less disability, rather than more disability
 mv_complete$DRS_Scaled <- 30 - mv_complete$DRS.DRSTotalScore
-#Generate a composite variable with the satisfaction with life scale
-mv_complete$SWLS_DRS_Composite <- (mv_complete$SWLSTotalScore + mv_complete$DRS_Scaled) / 2
 
 #Convert all three variables to z-scores
 mv_complete$SWLSTotalScore_Z <- scale(mv_complete$SWLSTotalScore, center = TRUE, scale = TRUE)
 mv_complete$DRS_Scaled_Z <- scale(mv_complete$DRS_Scaled, center = TRUE, scale = TRUE)
-mv_complete$SWLS_DRS_Composite_Z <- scale(mv_complete$SWLS_DRS_Composite, center = TRUE, scale = TRUE)
+
+#Generate a composite variable with the satisfaction with life scale
+mv_complete$SWLS_DRS_Composite_Z <- (mv_complete$SWLSTotalScore_Z + mv_complete$DRS_Scaled_Z) / 2
+
 ```
 
 Generate the specification curve for the Disability Rating Scale, Satisfaction with Life Score and the composite variable combining the two
@@ -328,12 +344,13 @@ qol_specs_results <- specr(qol_specs)
 #Save the results as a dataframe
 qol_specs_results_df <- as.data.frame(qol_specs_results)
 #Plot the specification curve
-plot(qol_specs_results, 
+qol_outcome_curve <- plot(qol_specs_results, 
       choices = c("y", "x"))
+qol_outcome_curve
 #Save the plot 
 ggsave("qol_specs_results_curve_y_x.jpg")
 #Plot the same data as a boxplot
-plot(qol_specs_results, 
+qol_outcome_box <- plot(qol_specs_results, 
       choices = c("y", "x"), 
       type = "boxplot")
 #Save the boxplot
@@ -389,7 +406,8 @@ table(qol_specs_results_df$p.value_sig) |>
 Generate the F2 values for the QOL measures
 ```{r}
 #Apply the add_f2 function to the qol_specs_results_df
-qol_specs_results_df <- add_f2(qol_specs_results_df, r2_column = "fit_r.squared")
+qol_specs_results_df <- add_f2(qol_specs_results_df, r2_column = "fit_r.squared", plot_name = "QOL_f2_plot")
+ggsave("qol_specs_results_df_f2_barplot.jpg")
 #save as excel
 write_xlsx(qol_specs_results_df, "qol_specs_results_df.xlsx")
 ```
@@ -426,12 +444,12 @@ mood_outcome_results <- specr(mood_outcome_specs)
 #Save the results as a df
 mood_outcome_results_df <- as.data.frame(mood_outcome_results)
 #Generate a plot
-plot(mood_outcome_results, 
+mood_outcome_curve <- plot(mood_outcome_results, 
       choices = c("y", "x"))
 #Save the plot
 ggsave("mood_outcome_results_curve_y_x.jpg")
 #Generate a boxplot
-plot(mood_outcome_results, 
+mood_outcome_box <- plot(mood_outcome_results, 
       choices = c("y", "x"), 
       type = "boxplot")
 #Save the boxplot
@@ -448,7 +466,8 @@ write_xlsx(mood_outcome_results_df, "mood_outcome_results_df.xlsx")
 #Generate the F2 values for the mood measures
 ```{r}
 #apply the add_f2 function to the mood_outcome_results_df
-mood_outcome_results_df <- add_f2(mood_outcome_results_df, r2_column = "fit_r.squared")
+mood_outcome_results_df <- add_f2(mood_outcome_results_df, r2_column = "fit_r.squared", plot_name = "Mood_f2_plot")
+ggsave("mood_outcome_results_df_f2_barplot.jpg")
 ```
 
 p-values 
@@ -474,3 +493,4 @@ table(mood_outcome_results_df$p.value_sig) |>
   round(2) |> 
   print()
 ```
+
