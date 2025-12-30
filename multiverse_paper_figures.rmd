@@ -1,0 +1,396 @@
+---
+title: "Multiverse: Renamed Figures and Tables"
+output: html_document
+---
+
+This script can only be run after multiverse_analysis is executed. It relies on specifications run prior.
+
+Processing Speed Index Plot
+```{r}
+library(gt)
+
+View(mv_complete)
+
+# Rename variables in mv_complete for better readability in plots
+mv_complete <- mv_complete %>%
+  rename(
+    `Processing Speed Index` = PSIScrCOBRIT_Z,
+    `Symbol Search` = PSISymbSrchScldScrCOBRIT_Z,
+    `Digit Symbols` = PSIDigSymbScldScrCOBRIT_Z,
+    `Glasgow Coma Scale (GCS)` = WorsT.GCS.and.Pupils.GCSTotalScore_Z,
+    `Post Traumatic Amnesia (PTA)` = PTA_Reverse_Z,
+    `Galveston Orientation and Amnesia Test (GOAT)` = .GOATTotalScore_Z, 
+    `Satisfaction with Life Scale (SWLS)` = SWLSTotalScore_Z,
+    `Disability Rating Scale (DRS)` = DRS_Scaled_Z,
+    `SWLS-DRS Composite Score` = SWLS_DRS_Composite_Z, 
+    `Brief Symptom Inventory (BSI) Global Severity Score` = .BSI18GSIScoreT_Z,
+    `BSI Depression Score` = .BSI18DeprScoreT_Z,
+    `BSI Anxiety Score` = .BSI18AnxScoreT_Z
+  )
+
+#correlation between GCS and DRS
+cor(mv_complete$`Post Traumatic Amnesia (PTA)`, mv_complete$`Disability Rating Scale (DRS)`, use = "pairwise.complete.obs")
+
+#scatterplot of GCS and DRS
+library(ggplot2)
+ggplot(mv_complete, aes(x = `Post Traumatic Amnesia (PTA)`, y = `Disability Rating Scale (DRS)`)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Scatterplot of GCS and DRS",
+    x = "Glasgow Coma Scale (GCS)",
+    y = "Disability Rating Scale (DRS)"
+  ) +
+  theme_minimal()
+
+# Run specs with custom latent var function and updated variable names
+PSI_specs <- specr::setup(data = mv_complete,            
+               y = c("`Processing Speed Index`", "`Symbol Search`", "`Digit Symbols`"),              
+               x = c("`Glasgow Coma Scale (GCS)`", "`Post Traumatic Amnesia (PTA)`", "`Galveston Orientation and Amnesia Test (GOAT)`"),             
+               model = c("lm"), 
+               controls = c("Main.AgeYrs", "Main.AgeYrs_Squared", "Demographics.RaceCatCOBRIT", "Demographics.AnnualIncomePreInjOrdinal", "Demographics.EduLvlUSATypCOBRITOrdinal", "Demographics.GenderTyp"))
+
+PSI_results <- specr(PSI_specs)
+
+# Generate the specification curve plot with renamed variables
+plot(PSI_results, choices = c("y", "x")) +
+  labs(
+    x = "Predictor Variables",
+    y = "Outcome Variables",
+    title = "Specification Curve for Processing Speed Outcomes"
+  )
+
+#generate a summary of all the results
+PSI_results_summary <- summary(PSI_results, 
+        type = "curve", 
+        group = c("y", "x"))
+#Save the summary as a dataframe
+PSI_results_summary_df <- as.data.frame(PSI_results_summary)
+
+PSI_results_summary
+
+psi_results_gt <- PSI_results_summary_df |>
+    gt() |>
+    tab_header(
+        title = "Processing Speed Index Model Summaries"
+    )
+
+psi_results_gt
+
+gtsave(psi_results_gt, filename = "psi_results_gt.html")
+
+# Save the updated plot
+ggsave("PSI_results_renamed_variables.jpg")
+```
+
+Processing Speed Index Plot
+```{r}
+# Run specs with custom latent var function and updated variable names
+PSI_specs <- specr::setup(data = mv_complete,            
+               y = c("`Processing Speed Index`", "`Symbol Search`", "`Digit Symbols`"),              
+               x = c("`Glasgow Coma Scale (GCS)`", "`Post Traumatic Amnesia (PTA)`", "`Galveston Orientation and Amnesia Test (GOAT)`"),             
+               model = c("lm"), 
+               controls = c("Main.AgeYrs", "Main.AgeYrs_Squared", "Demographics.RaceCatCOBRIT", "Demographics.AnnualIncomePreInjOrdinal", "Demographics.EduLvlUSATypCOBRITOrdinal", "Demographics.GenderTyp"))
+
+PSI_results <- specr(PSI_specs)
+
+# Generate the specification curve plot with renamed variables
+PSI_outcome_curve <- plot(PSI_results, choices = c("y", "x")) +
+  labs(
+    x = "Predictor Variables",
+    y = "Outcome Variables",
+    title = "Specification Curve for Processing Speed Outcomes")
+
+PSI_outcome_box <- plot(PSI_results, choices = c("y", "x"), type = "boxplot")
+
+PSI_outcome_box
+
+# Save the updated plot
+ggsave("PSI_results_renamed_variables.jpg")
+
+```
+
+Quality of life related measures
+```{r}
+
+# Run specs with outcome variables measuring quality of life
+qol_specs <- specr::setup(data = mv_complete,            
+               y = c("`Satisfaction with Life Scale (SWLS)`", "`Disability Rating Scale (DRS)`", "`SWLS-DRS Composite Score`"),              
+               x = c("`Glasgow Coma Scale (GCS)`", "`Post Traumatic Amnesia (PTA)`", "`Galveston Orientation and Amnesia Test (GOAT)`"),             
+               model = c("lm"), 
+               controls = c("Main.AgeYrs", "Main.AgeYrs_Squared", "Demographics.RaceCatCOBRIT", "Demographics.AnnualIncomePreInjOrdinal", "Demographics.EduLvlUSATypCOBRITOrdinal", "Demographics.GenderTyp"))
+
+#generate results
+qol_specs_results <- specr(qol_specs)
+#Plot the specification curve
+qol_outcome_curve <- plot(qol_specs_results, 
+      choices = c("y", "x"))
+
+qol_outcome_curve
+
+#Save the plot 
+ggsave("qol_specs_results_curve_y_x.jpg")
+
+qol_outcome_box <- plot(PSI_results, choices = c("y", "x"), type = "boxplot")
+
+ggsave("qol_outcome_box.jpg")
+
+#generate a summary of all the results
+qol_results_summary <- summary(qol_specs_results, 
+        type = "curve", 
+        group = c("y", "x"))
+#Save the summary as a dataframe
+qol_results_summary_df <- as.data.frame(qol_results_summary)
+
+
+qol_results_gt <- qol_results_summary_df |>
+    gt() |>
+    tab_header(
+        title = "Quality of Life Model Summaries"
+    )
+
+qol_results_gt
+
+gtsave(qol_results_gt, filename = "qol_results_gt.html")
+
+
+```
+
+Mood related outcome measures
+```{r}  
+#Generate the specification curve for the mood related outcome variables
+mood_outcome_specs <- specr::setup(data = mv_complete,            
+               y = c("`Brief Symptom Inventory (BSI) Global Severity Score`", "`BSI Depression Score`", "`BSI Anxiety Score`"),              
+               x = c("`Glasgow Coma Scale (GCS)`", "`Post Traumatic Amnesia (PTA)`", "`Galveston Orientation and Amnesia Test (GOAT)`"),           
+               model = c("lm"), 
+               controls = c("Main.AgeYrs", "Main.AgeYrs_Squared", "Demographics.RaceCatCOBRIT", "Demographics.AnnualIncomePreInjOrdinal", "Demographics.EduLvlUSATypCOBRITOrdinal", "Demographics.GenderTyp"))
+
+mood_outcome_results <- specr(mood_outcome_specs)
+#Generate a plot
+mood_outcome_plot <- plot(mood_outcome_results, 
+      choices = c("y", "x"))
+
+mood_outcome_box <- plot(mood_outcome_results, choices = c("y", "x"), type = "boxplot")
+
+
+#generate a summary of all the results
+mood_results_summary <- summary(mood_outcome_results, 
+        type = "curve", 
+        group = c("y", "x"))
+#Save the summary as a dataframe
+mood_results_summary_df <- as.data.frame(mood_results_summary)
+
+
+mood_results_gt <- mood_results_summary_df |>
+    gt() |>
+    tab_header(
+        title = "Mood Outcome Model Summaries"
+    )
+
+mood_results_gt
+
+gtsave(mood_results_gt, filename = "mood_results_gt.html")
+
+```
+
+Demographic Information
+```{r}
+#install.packages("gtsummary")
+library(gtsummary)
+```
+
+Descriptive Statistics for all Outcome and Predictor Variables
+```{r}
+
+View(mv_complete)
+#Processing Speed 
+mv_complete$`Processing Speed Index Standardized Score` <- as.numeric(mv_complete$PSIScrCOBRIT)
+mv_complete$`Symbol Search Standardized Score` <- as.numeric(mv_complete$PSISymbSrchScldScrCOBRIT)
+mv_complete$`Digit Symbols Standardized Score` <- as.numeric(mv_complete$PSIDigSymbScldScrCOBRIT)
+
+psi_descriptive_gt <- mv_complete |>
+  tbl_summary(by = Demographics.GenderTyp, include = c(`Processing Speed Index Standardized Score`,`Symbol Search Standardized Score`, `Digit Symbols Standardized Score`)) |>
+  add_p() |>
+  as_gt() |>
+  tab_header(
+    title = "Processing Speed Descriptive Statistics",
+    subtitle = "Scaled scores for Processing Speed Index, Symbol Search, and Digit Symbols Tests"  
+  ) |>
+  tab_stubhead(label = "Test")
+
+#save the gt as a html file
+gtsave(psi_descriptive_gt, filename = "processing_speed_descriptive_statistics.png")
+
+
+#Quality of Life
+mv_complete$`Satisfaction with Life Scale (SWLS) Total Score` <- as.numeric(mv_complete$SWLSTotalScore)
+mv_complete$`Disability Rating Scale (DRS) Total Score` <- as.numeric(mv_complete$DRS.DRSTotalScore)
+mv_complete$`SWLS-DRS Composite Score` <- as.numeric(mv_complete$SWLS_DRS_Composite)
+
+qol_descriptive_gt <- mv_complete |>
+  tbl_summary(by = Demographics.GenderTyp, include = c(`Satisfaction with Life Scale (SWLS) Total Score`, `Disability Rating Scale (DRS) Total Score`, `SWLS-DRS Composite Score`)) |>
+  add_p() |>
+    as_gt() |>
+    tab_header(
+    title = "Quality of Life Descriptive Statistics",
+    subtitle = "Scores for Satisfaction with Life Scale, Disability Rating Scale, and SWLS-DRS Composite Score"
+    ) |>
+    tab_stubhead(label = "Test")
+
+qol_descriptive_gt
+
+#save the gt as a html file
+gtsave(qol_descriptive_gt, filename = "quality_of_life_descriptive_statistics.png")
+
+#Mood Related Outcomes
+mv_complete$`Brief Symptom Inventory (BSI) Global Severity Score` <- as.numeric(mv_complete$.BSI18GSIScoreT)
+mv_complete$`BSI Depression Score` <- as.numeric(mv_complete$.BSI18DeprScoreT)
+mv_complete$`BSI Anxiety Score` <- as.numeric(mv_complete$.BSI18AnxScoreT)
+
+mood_descriptive_gt <- mv_complete |>
+  tbl_summary(by = Demographics.GenderTyp, include = c(`Brief Symptom Inventory (BSI) Global Severity Score`, `BSI Depression Score`, `BSI Anxiety Score`)) |>
+    add_p() |>
+        as_gt() |>
+        tab_header(
+        title = "Mood Related Outcomes Descriptive Statistics",
+        subtitle = "T-scores for BSI Global Severity Score, BSI Depression Score, and BSI Anxiety Score"
+        ) |>
+        tab_stubhead(label = "Test")
+
+mood_descriptive_gt
+
+#save the gt as a html file
+gtsave(mood_descriptive_gt, filename = "mood_related_outcomes_descriptive_statistics.png")
+
+#TBI Severity Measures
+mv_complete$`Glasgow Coma Scale (GCS)` <- as.numeric(mv_complete$WorsT.GCS.and.Pupils.GCSTotalScore)
+#subtract 100 from PTA_Reverse and absolute vale
+mv_complete$`Post Traumatic Amnesia (PTA)` <- abs(mv_complete$PTA_Reverse - 100)
+mv_complete$`Post Traumatic Amnesia (PTA)` <- as.numeric(mv_complete$`Post Traumatic Amnesia (PTA)`)
+mv_complete$`Galveston Orientation and Amnesia Test (GOAT)` <- as.numeric(mv_complete$`.GOATTotalScore`)
+
+tbi_severity_gt <- mv_complete |>
+  tbl_summary(by = Demographics.GenderTyp, include = c(`Glasgow Coma Scale (GCS)`, `Post Traumatic Amnesia (PTA)`, `Galveston Orientation and Amnesia Test (GOAT)`)) |>
+    add_p() |>
+        as_gt() |>
+        tab_header(
+        title = "TBI Severity Measures Descriptive Statistics",
+        subtitle = "Raw Values for GCS, PTA, and GOAT"
+        ) |>
+        tab_stubhead(label = "Test") |>
+        as_ggplot()
+
+tbi_severity_gt
+
+#save the gt as a html file
+gtsave(tbi_severity_gt, filename = "tbi_severity_measures_descriptive_statistics.png")
+
+#use patchwork to combine all the tables
+library(gt)
+library(magick)
+library(cowplot)
+library(patchwork)
+
+# Read images
+img_tbi <- magick::image_read("tbi_severity_measures_descriptive_statistics.png")
+img_mood <- magick::image_read("mood_related_outcomes_descriptive_statistics.png")
+img_qol <- magick::image_read("quality_of_life_descriptive_statistics.png")
+img_psi <- magick::image_read("processing_speed_descriptive_statistics.png")
+
+# Convert to ggdraw
+plot_tbi <- cowplot::ggdraw() + cowplot::draw_image(img_tbi)
+plot_mood <- cowplot::ggdraw() + cowplot::draw_image(img_mood)
+plot_qol <- cowplot::ggdraw() + cowplot::draw_image(img_qol)
+plot_psi <- cowplot::ggdraw() + cowplot::draw_image(img_psi)
+
+final_plot <- plot_tbi + plot_mood + plot_qol + plot_psi +
+  plot_layout(ncol = 1) +
+  plot_annotation(title = "Descriptive Statistics for Outcome and Predictor Variables",
+                  theme = theme(plot.title = element_text(hjust = 0.5)))
+final_plot
+
+#save the final plot
+ggsave("descriptive_statistics_final_plot.jpg", width = 8, height = 12)
+```
+
+Income Table
+```{r}
+names(mv_complete)
+
+mv_complete$`Annual Income Pre-Injury` <- mv_complete$Demographics.AnnualIncomePreInjCat
+
+mv_complete$`Education Level` <- mv_complete$Demographics.EduLvlUSATypCOBRIT
+
+mv_complete$Age <- mv_complete$Main.AgeYrs
+
+# summarize the data with our package
+ses_table_2 <-
+  mv_complete |> 
+  tbl_summary(include = c(`Age`, `Annual Income Pre-Injury`, `Education Level`), 
+              by = Demographics.GenderTyp)
+
+ses_table_2
+
+# Save ses_table as an image
+ses_table_2 |> 
+  as_gt() |> 
+  gt::gtsave(filename = "ses_table_2.html")
+
+```
+
+Patch the figures together
+```{r}
+# install.packages("devtools")
+library(patchwork)
+
+patch <- mood_outcome_box + Mood_f2_plot
+
+mood_outcome_curve + patch
+
+mood_outcome_curve / (mood_outcome_box | Mood_f2_plot)
+
+ggsave("mood_outcome_patch.jpg", width = 10, height = 8)
+
+```
+
+Same thing, for PSI
+```{r}
+
+PSI_outcome_curve
+
+# Make the top plot span the full width
+free(PSI_outcome_curve) / (PSI_outcome_box | PSI_f2_plot) +
+  plot_layout(heights = c(1, 1)) + 
+      plot_annotation(tag_levels = "I")  # Add tag levels
+
+# Save the updated layout
+ggsave("psi_outcome_patch.jpg", width = 12, height = 8)
+# Save the updated layout
+ggsave("psi_outcome_patch.jpg", width = 10, height = 8)
+
+```
+
+quality of life measures 
+```{r}
+qol_outcome_curve
+
+free(qol_outcome_curve) / (qol_outcome_box | QOL_f2_plot) +
+  plot_layout(heights = c(1, 1)) + 
+    plot_annotation(tag_levels = "I")  # Add tag levels
+
+ggsave("qol_outcome_patch.jpg", width = 12, height = 8)
+
+```
+
+mood related outcome measures
+```{r}
+mood_outcome_curve
+
+free(mood_outcome_plot) / (mood_outcome_box | Mood_f2_plot) +
+  plot_layout(heights = c(1, 1)) +
+    plot_annotation(tag_levels = "I")  # Add tag levels
+
+ggsave("mood_outcome_patch.jpg", width = 12, height = 8)
+
+```
+
