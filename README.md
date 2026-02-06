@@ -18,10 +18,6 @@ https://CRAN.R-project.org/package=specr.
 
 - **`multiverse_analysis.qmd`**: Main Quarto document that runs the multiverse/specification-curve analyses and exports figures and summary tables.
 - **`multiverse_analysis.html`** and **`docs/`**: Rendered report and website-ready version (can be served via GitHub Pages).
-- **Data files**:
-  - **`mv_complete.xlsx`**: Analysis-ready dataset (complete cases for variables of interest).
-  - **`multiverse_merged.csv`**: Source multiverse dataset (before filtering to Placebo and complete cases).
-  - **`GOSE_GCS_extended_appendix.csv`**: GOSE/GCS appendix used to derive TBI severity and PTA measures.
 
 
 ### 1. Software requirements
