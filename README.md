@@ -19,6 +19,12 @@ https://CRAN.R-project.org/package=specr.
 - **`multiverse_analysis.qmd`**: Main Quarto document that runs the multiverse/specification-curve analyses and exports figures and summary tables.
 - **`multiverse_analysis.html`** and **`docs/`**: Rendered report and website-ready version (can be served via GitHub Pages).
 
+- Of note, the data was obtained from FITBIR and requires approval for access. Those data have been removed from this repository, but are available for request here: https://fitbir.nih.gov/content/access-data
+
+- Data used from this analysis are from Zafonte et al. (2012), with the Citicoline group removed to only include healthy controls.
+- Zafonte, R. D., Bagiella, E., Ansel, B. M., Novack, T. A., Friedewald, W. T., Hesdorffer, D. C., Timmons, S. D., Jallo, J., Eisenberg, H., Hart, T., Ricker, J. H., Diaz-Arrastia, R., Merchant, R. E., Temkin, N. R., Melton, S., & Dikmen, S. S. (2012). Effect of citicoline on functional and cognitive status among patients with traumatic brain injury: Citicoline Brain Injury Treatment Trial (COBRIT). JAMA, 308(19), 1993–2000. https://doi.org/10.1001/jama.2012.13256
+
+
 
 ### 1. Software requirements
 
